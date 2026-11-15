@@ -55,6 +55,10 @@ def main(argv=None) -> int:
     print(
         f"\n관문 실패: {', '.join(failed) if failed else '없음'} ({elapsed:.1f}초, schema={args.schema})"
     )
+    required = [f"{x}({r.id})" for r in results for x in r.requires]
+    print(
+        f"분석에서 반드시 함께 낼 민감도: {', '.join(required) if required else '없음'}"
+    )
 
     if args.json:
         args.json.parent.mkdir(parents=True, exist_ok=True)

@@ -351,3 +351,34 @@ def test_clean_copy_passes_all_gates(cur):
         r = fn(cur, S)
         if r.role == "gate":
             assert r.status == "pass", r.id
+
+
+def test_c11_requires_sensitivity5_only_at_threshold(cur):
+    base = C.c11_review_order_not_one_to_one(cur, S)
+    mixed, limit = base.details["(가) 제외"], base.details["민감도 5 기준(건 이상)"]
+    assert mixed >= limit  # 지금 데이터: 39 ≥ 32
+    assert base.status == "pass" and base.requires == ["민감도 5"]
+    # 혼합 리뷰를 기준 아래로 줄이면 민감도 5가 필요 없어짐.
+    # 리뷰를 지우면 그 주문의 '마지막 리뷰'가 더 오래된 리뷰로 바뀌어 새 혼합이 생길 수 있어 반복한다.
+    after = base
+    for _ in range(10):
+        m, lim = after.details["(가) 제외"], after.details["민감도 5 기준(건 이상)"]
+        if m < lim:
+            break
+        cur.execute(f"""WITH {C.analysis_base_cte(S)}
+                        SELECT review_id FROM per_review WHERE all_late <> any_late ORDER BY 1""")
+        mixed_ids = [r[0] for r in cur.fetchall()]
+        cur.execute(
+            f"DELETE FROM {S}.order_reviews WHERE review_id = ANY(%s)",
+            (mixed_ids[: m - (lim - 1)],),
+        )
+        after = C.c11_review_order_not_one_to_one(cur, S)
+    assert after.details["(가) 제외"] < after.details["민감도 5 기준(건 이상)"]
+    assert after.requires == []
+
+
+def test_c2_requires_sensitivity4(cur):
+    assert C.c2_no_date_by_status(cur, S).requires == ["민감도 4"]
+    cur.execute(f"""UPDATE {S}.orders o SET order_status = 'delivered'
+                    WHERE o.order_status = 'shipped' AND o.order_delivered_customer_date IS NULL""")
+    assert C.c2_no_date_by_status(cur, S).requires == []

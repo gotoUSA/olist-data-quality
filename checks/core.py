@@ -35,6 +35,9 @@ class Result:
     count: int
     details: dict = field(default_factory=dict)
     note: str = ""
+    requires: list = field(
+        default_factory=list
+    )  # 분석이 반드시 함께 내야 하는 민감도(D26·D36)
 
 
 def check_schema(schema: str) -> str:

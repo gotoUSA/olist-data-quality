@@ -111,6 +111,7 @@ def c2_no_date_by_status(cur, s):
         (c for st, _, c in by if st == "canceled"), 0
     )
     shipped = details.get("shipped", 0)
+    limit = gate_threshold(late_group_size(cur, s))
     return Result(
         "C2",
         "도착일 없음(상태별, 분석 범위)",
@@ -119,6 +120,7 @@ def c2_no_date_by_status(cur, s):
         sum(n for _, n, _ in by),
         details,
         f"미도착 shipped {shipped}건 = 민감도 4(D26)",
+        ["민감도 4"] if shipped >= limit else [],
     )
 
 
@@ -295,11 +297,12 @@ def c11_review_order_not_one_to_one(cur, s):
                count(*) FILTER (WHERE min_days <> max_days),
                count(*) FROM per_review""",
     )
+    limit = gate_threshold(late_group_size(cur, s))
     return Result(
         "C11",
         "리뷰와 주문이 일대일이 아님",
-        "report",
-        "report",
+        "gate",
+        "pass",
         shared + multi,
         {
             "공유 리뷰": shared,
@@ -308,8 +311,10 @@ def c11_review_order_not_one_to_one(cur, s):
             "(가) 제외": mixed_a,
             "(다) 제외": mixed_c,
             "Spearman 제외": mixed_sp,
+            "민감도 5 기준(건 이상)": limit,
         },
-        "관문 조건 미정",
+        "D36: (가) 제외가 기준 이상이면 민감도 5 필수",
+        ["민감도 5"] if mixed_a >= limit else [],
     )
 
 
