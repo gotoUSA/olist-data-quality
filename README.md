@@ -15,6 +15,8 @@ python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt
 docker compose up -d                      # PostgreSQL 16, localhost:5440
 .venv/Scripts/python scripts/download.py  # 원본 CSV → data/raw/ (저장소에 올리지 않음)
 .venv/Scripts/python scripts/load_raw.py  # raw 스키마에 전 열 TEXT로 적재
+.venv/Scripts/python -m checks.run        # 검사 C0~C18(C16은 replay), 관문 실패 시 종료 코드 1
+.venv/Scripts/python -m pytest tests -q   # 오류 주입 테스트(raw를 inj 스키마로 복사해 오류를 넣고 확인)
 ```
 
 ## 데이터 라이선스
